@@ -6,20 +6,23 @@ from miasm.core.locationdb import LocationDB
 from miasm.analysis.binary import Container
 from miasm.analysis.machine import Machine
 from miasm.ir.symbexec import SymbolicExecutionEngine
+from miasm.analysis.dse import DSEEngine
 
 from miasm.expression.expression import *
 from miasm.ir.translators.z3_ir import Z3Mem, TranslatorZ3
 
 loc_db = LocationDB()
 s = '\x8dI\x04\x8d[\x01\x80\xf9\x01t\x05\x8d[\xff\xeb\x03\x8d[\x01\x89\xd8\xc3'
+s = '\x55\x8b\xec\x83\xec\x08\xc7\x45\xf8\xcc\xcc\xcc\xcc\xc7\x45\xfc\xcc\xcc\xcc\xcc\xc7\x45\xfc\x03\x00\x00\x00\xc7\x45\xf8\x05\x00\x00\x00\x83\x7d\xfc\x05\x7e\x07\x8b\x45\xfc\xeb\x09\xeb\x05\x8b\x45\xf8\xeb\x02\x33\xc0\x8b\xe5\x5d\xc3'
 c = Container.from_string(s)
 machine = Machine('x86_32')
 mdis = machine.dis_engine(c.bin_stream)
 asmcfg = mdis.dis_multiblock(0)
-# for block in asmcfg.blocks:
-#     print(block.to_string(asmcfg.loc_db))
+for block in asmcfg.blocks:
+    print(block.to_string(asmcfg.loc_db))
 ira = machine.ira(loc_db)
 ircfg = ira.new_ircfg_from_asmcfg(asmcfg)
+# print(ircfg)
 # ircfg = ira.new_ircfg(asmcfg)
 # print(loc_db._offset_to_loc_key.keys()[0])
 sb = SymbolicExecutionEngine(ira)
@@ -30,7 +33,11 @@ sb = SymbolicExecutionEngine(ira)
 #     for reg in info[1]:
 #         print('\t\t', reg, ':', info[1][reg])
 
-sb.symbols[machine.mn.regs.ECX] = ExprInt(253, 32)
+# dse = DSEEngine(machine)
+# sb.symbols[machine.mn.regs.ECX] = ExprInt(253, 32)
+# sb.symbols[machine.mn.regs.EBP] = ExprOp('+', ExprId('ESP', 32), ExprInt(0xFFFFFFFC, 32))
+# memory_expr = dse.memory_to_expr(0x40000004)
+# sb.symbols[machine.mn.regs.EBP] = dse.eval_expr(memory_expr)
 symbolic_pc = sb.run_at(ircfg, loc_db._offset_to_loc_key.keys()[0])
 print('###### modified state step by step')
 for step, info in enumerate(sb.info_ids):
